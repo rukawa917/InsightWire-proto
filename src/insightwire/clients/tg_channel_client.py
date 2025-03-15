@@ -134,12 +134,15 @@ class TelegramChannelClient:
                 msgs:List[Message] = await client.get_messages(dialog, limit=limit)
 
                 for message in msgs:
+                    text = message.text.strip() if message.text else ""
+                    if text == "":
+                        continue
                     data.append(
                         {
                             "channel": dialog.name,
                             "date": message.date,
-                            "text": message.text.strip() if message.text else "",
-                            # "views": message.views,
+                            "text": text,
+                            "views": message.views,
                             # "forwards": message.forwards,
                         }
                     )

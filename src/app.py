@@ -2,13 +2,16 @@ import streamlit as st
 
 from insightwire.clients.tg_channel_client import TelegramChannelClient
 
+st.set_page_config(layout="wide")
+
 def home():
     st.write("Welcome to InsightWire!")
 
-    
 
 home_pg = st.Page(home, title="Home")
+
 telegram_pg = st.Page("tools/tg_channel.py", title="Telegram Channel")
+
 
 page_dict = {
     "Home": [home_pg],
