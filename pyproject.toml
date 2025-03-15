@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "insightwire"
+version = "0.1.0"
+description = ""
+authors = ["rukawa917 <chriskang960723@gmail.com>"]
+readme = "README.md"
+packages = [{include = "insightwire", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.11"
+telethon = "^1.39.0"
+streamlit = "^1.43.1"
+pandas = "^2.2.3"
+streamlit-telegram-login = "^0.0.3"
+pillow = "^11.1.0"
+aiohttp = "^3.11.13"
+authlib = "^1.5.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
