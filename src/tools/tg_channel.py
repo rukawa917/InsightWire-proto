@@ -1,40 +1,113 @@
+import atexit
 import streamlit as st
 from typing import List
 
-from insightwire.clients.tg_channel_client import TelegramChannelClient
+# Import the manager
+from insightwire.clients.telegram_session_manager import telegram_manager
+
+# Initialize session state
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+if "api_id" not in st.session_state:
+    st.session_state.api_id = ""
+if "api_hash" not in st.session_state:
+    st.session_state.api_hash = ""
+if "phone_number" not in st.session_state:
+    st.session_state.phone_number = ""
+if "auth_step" not in st.session_state:
+    st.session_state.auth_step = "input_credentials"
+
+# Start the manager
+telegram_manager.start()
 
 st.title("Telegram Channel Scraper")
-# api_id = st.text_input("Input API ID")
-# api_hash = st.text_input("Input API Hash")
-# phone_number = st.text_input("Input Phone Number used in Telegram")
 
-api_id = st.secrets["telegram"]["api_id"]
-api_hash = st.secrets["telegram"]["api_hash"]
-phone_number = st.secrets["telegram"]["phone_number"]
 
-if not api_id or not api_hash or not phone_number:
-    st.stop()
+def login():
+    if st.session_state.auth_step == "input_credentials":
+        api_id = st.text_input("Enter your API ID:")
+        api_hash = st.text_input("Enter your API Hash:", type="password")
+        phone_number = st.text_input("Enter your phone number:")
 
-cli = TelegramChannelClient(
-    session_dir="session",
-    api_id=api_id,
-    api_hash=api_hash,
-    phone_number=phone_number,
-)
+        if not api_id or not api_hash or not phone_number:
+            return None
 
-# target_channels = ["The Barbarian 해외주식", "SeungHee KANG"]
-with st.spinner("Retrieving channels..."):
-    channels: List[str] = cli.get_channels()
+        if st.button("Connect"):
+            st.session_state.api_id = api_id
+            st.session_state.api_hash = api_hash
+            st.session_state.phone_number = phone_number
 
-sel_channels: List[str] = st.multiselect("Select channels", channels)
-data = None
-if st.button("Scrape"):
-    with st.spinner("Scraping..."):
-        data = cli.get_channel_data(sel_channels)
+            # Connect using the session manager
+            session_name = f"session_{phone_number.replace('+', '')}"
+            telegram_manager.connect(session_name, api_id, api_hash, phone_number)
 
-if data is None:
-    st.stop()
-st.dataframe(data, use_container_width=True)
-    
+            st.session_state.auth_step = "check_connection"
+            st.rerun()
 
-        
+    elif st.session_state.auth_step == "check_connection":
+        with st.spinner("Connecting to Telegram..."):
+            # Check if already authorized
+            if telegram_manager.is_authorized():
+                st.success("Already authorized!")
+                st.session_state.auth = True
+                return True
+            else:
+                # Need to request verification code
+                telegram_manager.send_code_request(st.session_state.phone_number)
+                st.session_state.auth_step = "enter_code"
+                st.rerun()
+
+    elif st.session_state.auth_step == "enter_code":
+        verification_code = st.text_input(
+            "Enter the verification code sent to your Telegram:"
+        )
+
+        if st.button("Verify"):
+            if verification_code:
+                with st.spinner("Verifying..."):
+                    if telegram_manager.sign_in(
+                        st.session_state.phone_number, verification_code
+                    ):
+                        st.success("Successfully connected to Telegram!")
+                        st.session_state.auth = True
+                        return True
+                    else:
+                        st.error(
+                            "Invalid code or authentication failed. Please try again."
+                        )
+                        # Keep in the same state to allow retrying
+            else:
+                st.warning("Please enter the verification code.")
+
+    return None
+
+
+def main_flow():
+    channels = telegram_manager.get_channels()
+    sel_channels = st.multiselect("Select channels", channels)
+    data = None
+    if st.button("Scrape"):
+        with st.spinner("Scraping..."):
+            data = telegram_manager.get_channel_data(sel_channels)
+
+    if data is not None and not data.empty:
+        st.dataframe(data, use_container_width=True)
+
+
+# Main code flow
+if not st.session_state.auth:
+    result = login()
+    if result:
+        st.rerun()  # Refresh after successful login
+else:
+    # User is already authenticated, proceed to main flow
+    main_flow()
+
+
+# Cleanup function
+def cleanup():
+    telegram_manager.stop()
+
+
+# Register cleanup
+atexit.register(cleanup)

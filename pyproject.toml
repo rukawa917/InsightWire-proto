@@ -16,6 +16,8 @@ streamlit-telegram-login = "^0.0.3"
 pillow = "^11.1.0"
 aiohttp = "^3.11.13"
 authlib = "^1.5.1"
+nest-asyncio = "^1.6.0"
+filelock = "^3.18.0"
 
 
 [build-system]
