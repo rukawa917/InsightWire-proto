@@ -22,12 +22,24 @@ telegram_manager.start()
 
 st.title("Telegram Channel Scraper")
 
-
 def login():
     if st.session_state.auth_step == "input_credentials":
         api_id = st.text_input("Enter your API ID:")
         api_hash = st.text_input("Enter your API Hash:", type="password")
-        phone_number = st.text_input("Enter your phone number:")
+        phone_number = st.text_input("Enter your phone number (+123456789):")
+
+        st.markdown(
+            """
+            ### How to get the API ID and Hash?
+            1. Go to [Telegram's website](https://my.telegram.org/auth) and log in.
+            2. Click on API Development Tools.
+            3. Fill in the required fields.
+                - App Title: Any name you want.
+                - Short Name: Any name you want.
+            4. Copy the `api_id` and `api_hash` to the respective fields above.
+            5. Enter your phone number and click on Connect.
+            """
+        )
 
         if not api_id or not api_hash or not phone_number:
             return None
